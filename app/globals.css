@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* app chrome surfaces */
+  --bg: #0b0d10;
+  --surface: #14171b;
+  --surface-raised: #1b1f24;
+  --border: #262b32;
+
+  /* app chrome text */
+  --text: #e8eaed;
+  --muted: #8b939d;
+  --faint: #565d66;
+
+  /* accent */
+  --accent: #2a4d8f;
+  --accent-hover: #35609e;
+  --accent-ink: #f5f7fb;
+
+  /* status */
+  --success: #3fb27f;
+  --danger: #d9534f;
+
+  /* certificate artifact - stays light/print-friendly regardless of app theme */
+  --cert-bg: #fdfbf6;
+  --cert-border: #4b3e96;
+  --cert-border-inner: #7691c2;
+  --cert-ink: #1c1f26;
+  --cert-muted: #57606e;
+  --cert-hairline: #c9cdd6;
+
+  /* scale */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --cert-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: var(--font-playfair-display), Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
 }
