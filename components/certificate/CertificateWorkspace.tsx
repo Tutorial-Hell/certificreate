@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { CertificateForm } from "@/components/certificate/CertificateForm";
 import { templates } from "@/lib/certificate/templates";
 import type { CertificateData } from "@/lib/certificate/types";
@@ -13,6 +13,43 @@ const emptyData: CertificateData = {
 };
 
 const template = templates[0];
+
+// Matches the viewport width /certificate/render is captured at (lib/certificate/render.ts),
+// so the preview is a true scaled miniature of the export, not a differently-proportioned reflow.
+const CERTIFICATE_DESIGN_WIDTH = 1200;
+
+function CertificatePreview({
+  data,
+  Template,
+}: {
+  data: CertificateData;
+  Template: ComponentType<{ data: CertificateData }>;
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    setScale(el.getBoundingClientRect().width / CERTIFICATE_DESIGN_WIDTH);
+    const observer = new ResizeObserver(([entry]) => {
+      setScale(entry.contentRect.width / CERTIFICATE_DESIGN_WIDTH);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="aspect-[1.414/1] w-full max-w-xl overflow-hidden">
+      <div
+        className="origin-top-left"
+        style={{ width: CERTIFICATE_DESIGN_WIDTH, transform: `scale(${scale})` }}
+      >
+        <Template data={data} />
+      </div>
+    </div>
+  );
+}
 
 function isComplete(data: CertificateData): boolean {
   return Boolean(
@@ -75,9 +112,7 @@ export function CertificateWorkspace() {
     <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
       <CertificateForm data={data} onChange={handleChange} />
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">
-        <div className="w-full max-w-xl">
-          <Template data={data} />
-        </div>
+        <CertificatePreview data={data} Template={Template} />
         <div className="flex w-full max-w-xl flex-col items-end gap-2">
           <button
             type="button"
