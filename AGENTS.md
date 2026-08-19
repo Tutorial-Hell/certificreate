@@ -108,10 +108,11 @@ For a standard Next.js project. Change or remove if you're using something else.
 - Build: `npm run build`
 - Production server: `npm run start`
 - Lint: `npm run lint`
-
-Testing is opt-in. If this project does not already have a unit test runner, run
-`/tests` or `$tests` to add one and update this section with the real test
-commands.
+- Typecheck: `npm run typecheck`
+- Test: `npm run test` (Vitest, run once)
+- Test (watch): `npm run test:watch`
+- Verify: `npm run verify` (typecheck, then test, then build; matching automatic
+  GitHub check in `.github/workflows/verify.yml`)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -19,7 +19,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function slugify(value: string): string {
+export function slugify(value: string): string {
   const slug = value
     .toLowerCase()
     .trim()
