@@ -8,13 +8,24 @@ const DEVICE_SCALE_FACTOR = 3;
 export type CertificateRenderRequest = CertificateData & { templateId: string };
 
 /**
+ * Puppeteer and the Next.js server share one container, so the render page
+ * must be reached over plain HTTP on the local port, never through the
+ * public HTTPS origin - behind Render's proxy, the inbound request's
+ * forwarded-https protocol paired with its raw (internal, plain-HTTP)
+ * Host header produces an origin nothing actually serves TLS on.
+ */
+function getInternalOrigin(): string {
+  const port = process.env.PORT ?? "3000";
+  return `http://127.0.0.1:${port}`;
+}
+
+/**
  * Navigates a Puppeteer page to the print-only /certificate/render route and
  * waits until the certificate is ready to capture. Shared by PNG export and,
  * later, PDF export, so both reuse the same navigate/wait logic.
  */
 export async function goToCertificateRender(
   page: Page,
-  origin: string,
   data: CertificateRenderRequest,
 ): Promise<ElementHandle<Element>> {
   await page.setViewport({
@@ -31,7 +42,7 @@ export async function goToCertificateRender(
     templateId: data.templateId,
   });
 
-  await page.goto(`${origin}/certificate/render?${params.toString()}`, {
+  await page.goto(`${getInternalOrigin()}/certificate/render?${params.toString()}`, {
     waitUntil: "networkidle0",
   });
   await page.evaluate(async () => {

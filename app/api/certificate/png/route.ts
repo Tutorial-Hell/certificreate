@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const png = await withPage((page) =>
-      goToCertificateRender(page, request.nextUrl.origin, {
+      goToCertificateRender(page, {
         recipientName: body.recipientName as string,
         course: body.course as string,
         date: body.date as string,
