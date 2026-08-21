@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { slugify } from "./route";
+import { certificateFilename, slugify } from "./filename";
 
 describe("slugify", () => {
   it("lowercases and hyphenates spaces", () => {
@@ -17,5 +17,16 @@ describe("slugify", () => {
   it("falls back to certificate for empty or symbol-only input", () => {
     expect(slugify("   ")).toBe("certificate");
     expect(slugify("!!!")).toBe("certificate");
+  });
+});
+
+describe("certificateFilename", () => {
+  it("combines the slugified name with the given extension", () => {
+    expect(certificateFilename("Jane Doe", "png")).toBe("jane-doe-certificate.png");
+    expect(certificateFilename("Jane Doe", "pdf")).toBe("jane-doe-certificate.pdf");
+  });
+
+  it("falls back to certificate for empty input", () => {
+    expect(certificateFilename("   ", "pdf")).toBe("certificate-certificate.pdf");
   });
 });

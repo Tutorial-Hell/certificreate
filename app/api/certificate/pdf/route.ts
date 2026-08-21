@@ -23,23 +23,30 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const png = await withPage((page) =>
-      goToCertificateRender(page, parsed.data).then((certificateElement) =>
-        certificateElement.screenshot({ type: "png" }),
+    const pdf = await withPage((page) =>
+      goToCertificateRender(page, parsed.data).then(() =>
+        // The certificate's own aspect-[1.414/1] frame is A4's ratio, so an A4
+        // landscape page at zero margin fills exactly with no crop or gutter.
+        page.pdf({
+          format: "A4",
+          landscape: true,
+          printBackground: true,
+          margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        }),
       ),
     );
 
-    const filename = certificateFilename(parsed.data.recipientName, "png");
+    const filename = certificateFilename(parsed.data.recipientName, "pdf");
 
-    return new NextResponse(new Blob([Buffer.from(png)], { type: "image/png" }), {
+    return new NextResponse(new Blob([Buffer.from(pdf)], { type: "application/pdf" }), {
       status: 200,
       headers: {
-        "Content-Type": "image/png",
+        "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
-    console.error("Failed to render certificate PNG", error);
-    return new NextResponse("Failed to render certificate PNG", { status: 500 });
+    console.error("Failed to render certificate PDF", error);
+    return new NextResponse("Failed to render certificate PDF", { status: 500 });
   }
 }
