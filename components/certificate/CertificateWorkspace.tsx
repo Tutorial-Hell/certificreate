@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { CertificateForm } from "@/components/certificate/CertificateForm";
+import { TemplatePicker } from "@/components/certificate/TemplatePicker";
 import { templates } from "@/lib/certificate/templates";
 import type { CertificateData } from "@/lib/certificate/types";
 
@@ -11,8 +12,6 @@ const emptyData: CertificateData = {
   date: "",
   instructorName: "",
 };
-
-const template = templates[0];
 
 // Matches the viewport width /certificate/render is captured at (lib/certificate/render.ts),
 // so the preview is a true scaled miniature of the export, not a differently-proportioned reflow.
@@ -68,12 +67,13 @@ function extractFilename(contentDisposition: string | null, format: "png" | "pdf
 async function downloadCertificate(
   endpoint: string,
   data: CertificateData,
+  templateId: string,
   format: "png" | "pdf",
 ): Promise<void> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...data, templateId: template.id }),
+    body: JSON.stringify({ ...data, templateId }),
   });
 
   if (!response.ok) {
@@ -94,6 +94,7 @@ async function downloadCertificate(
 
 export function CertificateWorkspace() {
   const [data, setData] = useState<CertificateData>(emptyData);
+  const [templateId, setTemplateId] = useState<string>(templates[0].id);
   const [downloadingFormat, setDownloadingFormat] = useState<"png" | "pdf" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,7 +106,7 @@ export function CertificateWorkspace() {
     setError(null);
     setDownloadingFormat(format);
     try {
-      await downloadCertificate(endpoint, data, format);
+      await downloadCertificate(endpoint, data, templateId, format);
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to generate ${format.toUpperCase()}`);
     } finally {
@@ -113,12 +114,16 @@ export function CertificateWorkspace() {
     }
   };
 
+  const template = templates.find((t) => t.id === templateId) ?? templates[0];
   const Template = template.Component;
   const canDownload = isComplete(data) && downloadingFormat === null;
 
   return (
     <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
-      <CertificateForm data={data} onChange={handleChange} />
+      <div className="flex flex-col gap-6">
+        <TemplatePicker templates={templates} selectedId={templateId} onSelect={setTemplateId} />
+        <CertificateForm data={data} onChange={handleChange} />
+      </div>
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">
         <CertificatePreview data={data} Template={Template} />
         <div className="flex w-full max-w-xl flex-col items-end gap-2">
