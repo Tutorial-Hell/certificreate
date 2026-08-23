@@ -1,8 +1,12 @@
 import { templates } from "@/lib/certificate/templates";
+import type { BrandColors } from "@/lib/certificate/brand-settings";
 import type { CertificateData } from "@/lib/certificate/types";
 import type { CertificateRenderRequest } from "@/lib/certificate/render";
 
-export type CertificateRequestBody = Partial<CertificateData> & { templateId?: string };
+export type CertificateRequestBody = Partial<CertificateData> & {
+  templateId?: string;
+  colors?: BrandColors;
+};
 
 const REQUIRED_FIELDS = [
   "recipientName",
@@ -37,6 +41,7 @@ export function parseCertificateRequest(body: CertificateRequestBody): ParsedCer
       date: body.date as string,
       instructorName: body.instructorName as string,
       templateId,
+      colors: body.colors,
     },
   };
 }

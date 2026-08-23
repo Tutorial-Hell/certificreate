@@ -1,8 +1,11 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import { BrandSettingsPanel } from "@/components/certificate/BrandSettingsPanel";
 import { CertificateForm } from "@/components/certificate/CertificateForm";
 import { TemplatePicker } from "@/components/certificate/TemplatePicker";
+import { colorOverrideStyle, type BrandColors } from "@/lib/certificate/brand-settings";
+import { useBrandSettings } from "@/lib/certificate/use-brand-settings";
 import { templates } from "@/lib/certificate/templates";
 import type { CertificateData } from "@/lib/certificate/types";
 
@@ -20,9 +23,11 @@ const CERTIFICATE_DESIGN_WIDTH = 1200;
 function CertificatePreview({
   data,
   Template,
+  colors,
 }: {
   data: CertificateData;
   Template: ComponentType<{ data: CertificateData }>;
+  colors: BrandColors;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -42,7 +47,11 @@ function CertificatePreview({
     <div ref={wrapperRef} className="aspect-[1.414/1] w-full max-w-xl overflow-hidden">
       <div
         className="origin-top-left"
-        style={{ width: CERTIFICATE_DESIGN_WIDTH, transform: `scale(${scale})` }}
+        style={{
+          width: CERTIFICATE_DESIGN_WIDTH,
+          transform: `scale(${scale})`,
+          ...colorOverrideStyle(colors),
+        }}
       >
         <Template data={data} />
       </div>
@@ -68,12 +77,13 @@ async function downloadCertificate(
   endpoint: string,
   data: CertificateData,
   templateId: string,
+  colors: BrandColors,
   format: "png" | "pdf",
 ): Promise<void> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...data, templateId }),
+    body: JSON.stringify({ ...data, templateId, colors }),
   });
 
   if (!response.ok) {
@@ -97,16 +107,25 @@ export function CertificateWorkspace() {
   const [templateId, setTemplateId] = useState<string>(templates[0].id);
   const [downloadingFormat, setDownloadingFormat] = useState<"png" | "pdf" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { settings: brandSettings, setSettings: setBrandSettings, loaded: brandSettingsLoaded } =
+    useBrandSettings();
 
   const handleChange = (field: keyof Omit<CertificateData, "logoUrl">, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    if (!brandSettingsLoaded || !brandSettings.instructorName) return;
+    setData((prev) =>
+      prev.instructorName ? prev : { ...prev, instructorName: brandSettings.instructorName },
+    );
+  }, [brandSettingsLoaded, brandSettings.instructorName]);
+
   const handleDownload = (endpoint: string, format: "png" | "pdf") => async () => {
     setError(null);
     setDownloadingFormat(format);
     try {
-      await downloadCertificate(endpoint, data, templateId, format);
+      await downloadCertificate(endpoint, data, templateId, brandSettings.colors, format);
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to generate ${format.toUpperCase()}`);
     } finally {
@@ -121,11 +140,12 @@ export function CertificateWorkspace() {
   return (
     <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
       <div className="flex flex-col gap-6">
+        <BrandSettingsPanel settings={brandSettings} onChange={setBrandSettings} />
         <TemplatePicker templates={templates} selectedId={templateId} onSelect={setTemplateId} />
         <CertificateForm data={data} onChange={handleChange} />
       </div>
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">
-        <CertificatePreview data={data} Template={Template} />
+        <CertificatePreview data={data} Template={Template} colors={brandSettings.colors} />
         <div className="flex w-full max-w-xl flex-col items-end gap-2">
           <div className="flex gap-2">
             <button

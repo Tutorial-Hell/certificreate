@@ -1,11 +1,15 @@
 import type { ElementHandle, Page } from "puppeteer";
+import type { BrandColors } from "@/lib/certificate/brand-settings";
 import type { CertificateData } from "@/lib/certificate/types";
 
 const VIEWPORT_WIDTH = 1200;
 const VIEWPORT_HEIGHT = 849;
 const DEVICE_SCALE_FACTOR = 3;
 
-export type CertificateRenderRequest = CertificateData & { templateId: string };
+export type CertificateRenderRequest = CertificateData & {
+  templateId: string;
+  colors?: BrandColors;
+};
 
 /**
  * Puppeteer and the Next.js server share one container, so the render page
@@ -41,6 +45,8 @@ export async function goToCertificateRender(
     instructorName: data.instructorName,
     templateId: data.templateId,
   });
+  if (data.colors?.border) params.set("colorBorder", data.colors.border);
+  if (data.colors?.borderInner) params.set("colorBorderInner", data.colors.borderInner);
 
   await page.goto(`${getInternalOrigin()}/certificate/render?${params.toString()}`, {
     waitUntil: "networkidle0",
