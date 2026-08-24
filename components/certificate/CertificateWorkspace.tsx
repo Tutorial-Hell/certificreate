@@ -78,12 +78,13 @@ async function downloadCertificate(
   data: CertificateData,
   templateId: string,
   colors: BrandColors,
+  logoUrl: string | undefined,
   format: "png" | "pdf",
 ): Promise<void> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...data, templateId, colors }),
+    body: JSON.stringify({ ...data, templateId, colors, logoUrl }),
   });
 
   if (!response.ok) {
@@ -107,8 +108,12 @@ export function CertificateWorkspace() {
   const [templateId, setTemplateId] = useState<string>(templates[0].id);
   const [downloadingFormat, setDownloadingFormat] = useState<"png" | "pdf" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { settings: brandSettings, setSettings: setBrandSettings, loaded: brandSettingsLoaded } =
-    useBrandSettings();
+  const {
+    settings: brandSettings,
+    setSettings: setBrandSettings,
+    loaded: brandSettingsLoaded,
+    saveError: brandSettingsSaveError,
+  } = useBrandSettings();
 
   const handleChange = (field: keyof Omit<CertificateData, "logoUrl">, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -125,7 +130,14 @@ export function CertificateWorkspace() {
     setError(null);
     setDownloadingFormat(format);
     try {
-      await downloadCertificate(endpoint, data, templateId, brandSettings.colors, format);
+      await downloadCertificate(
+        endpoint,
+        data,
+        templateId,
+        brandSettings.colors,
+        brandSettings.logoDataUrl,
+        format,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to generate ${format.toUpperCase()}`);
     } finally {
@@ -140,12 +152,20 @@ export function CertificateWorkspace() {
   return (
     <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
       <div className="flex flex-col gap-6">
-        <BrandSettingsPanel settings={brandSettings} onChange={setBrandSettings} />
+        <BrandSettingsPanel
+          settings={brandSettings}
+          onChange={setBrandSettings}
+          saveError={brandSettingsSaveError}
+        />
         <TemplatePicker templates={templates} selectedId={templateId} onSelect={setTemplateId} />
         <CertificateForm data={data} onChange={handleChange} />
       </div>
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">
-        <CertificatePreview data={data} Template={Template} colors={brandSettings.colors} />
+        <CertificatePreview
+          data={{ ...data, logoUrl: brandSettings.logoDataUrl }}
+          Template={Template}
+          colors={brandSettings.colors}
+        />
         <div className="flex w-full max-w-xl flex-col items-end gap-2">
           <div className="flex gap-2">
             <button

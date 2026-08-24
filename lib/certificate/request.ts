@@ -42,6 +42,7 @@ export function parseCertificateRequest(body: CertificateRequestBody): ParsedCer
       instructorName: body.instructorName as string,
       templateId,
       colors: body.colors,
+      logoUrl: body.logoUrl,
     },
   };
 }

@@ -1,5 +1,6 @@
 import type { ElementHandle, Page } from "puppeteer";
 import type { BrandColors } from "@/lib/certificate/brand-settings";
+import { stashLogo } from "@/lib/certificate/logo-handoff";
 import type { CertificateData } from "@/lib/certificate/types";
 
 const VIEWPORT_WIDTH = 1200;
@@ -47,6 +48,9 @@ export async function goToCertificateRender(
   });
   if (data.colors?.border) params.set("colorBorder", data.colors.border);
   if (data.colors?.borderInner) params.set("colorBorderInner", data.colors.borderInner);
+  // The logo is handed off in-process via a token, never placed in the URL
+  // itself - see lib/certificate/logo-handoff.ts for why.
+  if (data.logoUrl) params.set("logoToken", stashLogo(data.logoUrl));
 
   await page.goto(`${getInternalOrigin()}/certificate/render?${params.toString()}`, {
     waitUntil: "networkidle0",
