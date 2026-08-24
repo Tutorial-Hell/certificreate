@@ -3,9 +3,16 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { BrandSettingsPanel } from "@/components/certificate/BrandSettingsPanel";
 import { CertificateForm } from "@/components/certificate/CertificateForm";
+import { CertificateHistoryPanel } from "@/components/certificate/CertificateHistoryPanel";
 import { TemplatePicker } from "@/components/certificate/TemplatePicker";
 import { colorOverrideStyle, type BrandColors } from "@/lib/certificate/brand-settings";
 import { useBrandSettings } from "@/lib/certificate/use-brand-settings";
+import { useCertificateHistory } from "@/lib/certificate/use-certificate-history";
+import type { CertificateHistoryEntry } from "@/lib/certificate/history";
+import {
+  LAST_FORM_VALUES_STORAGE_KEY,
+  parseLastFormValues,
+} from "@/lib/certificate/last-form-values";
 import { templates } from "@/lib/certificate/templates";
 import type { CertificateData } from "@/lib/certificate/types";
 
@@ -68,6 +75,18 @@ function isComplete(data: CertificateData): boolean {
   );
 }
 
+function buildHistoryEntry(data: CertificateData, templateId: string): CertificateHistoryEntry {
+  return {
+    id: crypto.randomUUID(),
+    recipientName: data.recipientName,
+    course: data.course,
+    date: data.date,
+    instructorName: data.instructorName,
+    templateId,
+    createdAt: Date.now(),
+  };
+}
+
 function extractFilename(contentDisposition: string | null, format: "png" | "pdf"): string {
   const match = contentDisposition?.match(/filename="([^"]+)"/);
   return match?.[1] ?? `certificate.${format}`;
@@ -107,6 +126,7 @@ export function CertificateWorkspace() {
   const [data, setData] = useState<CertificateData>(emptyData);
   const [templateId, setTemplateId] = useState<string>(templates[0].id);
   const [downloadingFormat, setDownloadingFormat] = useState<"png" | "pdf" | null>(null);
+  const [downloadingEntryId, setDownloadingEntryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const {
     settings: brandSettings,
@@ -114,6 +134,8 @@ export function CertificateWorkspace() {
     loaded: brandSettingsLoaded,
     saveError: brandSettingsSaveError,
   } = useBrandSettings();
+  const { entries: historyEntries, addEntry: addHistoryEntry } = useCertificateHistory();
+  const [formValuesLoaded, setFormValuesLoaded] = useState(false);
 
   const handleChange = (field: keyof Omit<CertificateData, "logoUrl">, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -125,6 +147,33 @@ export function CertificateWorkspace() {
       prev.instructorName ? prev : { ...prev, instructorName: brandSettings.instructorName },
     );
   }, [brandSettingsLoaded, brandSettings.instructorName]);
+
+  // Restore once on mount, before the persist effect below can write anything back.
+  useEffect(() => {
+    const restored = parseLastFormValues(localStorage.getItem(LAST_FORM_VALUES_STORAGE_KEY));
+    if (restored) {
+      setData({
+        recipientName: restored.recipientName,
+        course: restored.course,
+        date: restored.date,
+        instructorName: restored.instructorName,
+      });
+      setTemplateId(restored.templateId);
+    }
+    setFormValuesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!formValuesLoaded) return;
+    try {
+      localStorage.setItem(
+        LAST_FORM_VALUES_STORAGE_KEY,
+        JSON.stringify({ ...data, templateId }),
+      );
+    } catch {
+      // best-effort; last form values are a convenience, not critical data
+    }
+  }, [data, templateId, formValuesLoaded]);
 
   const handleDownload = (endpoint: string, format: "png" | "pdf") => async () => {
     setError(null);
@@ -138,6 +187,7 @@ export function CertificateWorkspace() {
         brandSettings.logoDataUrl,
         format,
       );
+      addHistoryEntry(buildHistoryEntry(data, templateId));
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to generate ${format.toUpperCase()}`);
     } finally {
@@ -145,9 +195,47 @@ export function CertificateWorkspace() {
     }
   };
 
+  const handleOpenEntry = (entry: CertificateHistoryEntry) => {
+    setData({
+      recipientName: entry.recipientName,
+      course: entry.course,
+      date: entry.date,
+      instructorName: entry.instructorName,
+    });
+    setTemplateId(entry.templateId);
+  };
+
+  const handleDownloadEntry = async (entry: CertificateHistoryEntry, format: "png" | "pdf") => {
+    setError(null);
+    setDownloadingEntryId(entry.id);
+    const endpoint = format === "png" ? "/api/certificate/png" : "/api/certificate/pdf";
+    const entryData: CertificateData = {
+      recipientName: entry.recipientName,
+      course: entry.course,
+      date: entry.date,
+      instructorName: entry.instructorName,
+    };
+    try {
+      await downloadCertificate(
+        endpoint,
+        entryData,
+        entry.templateId,
+        brandSettings.colors,
+        brandSettings.logoDataUrl,
+        format,
+      );
+      addHistoryEntry(buildHistoryEntry(entryData, entry.templateId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to generate ${format.toUpperCase()}`);
+    } finally {
+      setDownloadingEntryId(null);
+    }
+  };
+
   const template = templates.find((t) => t.id === templateId) ?? templates[0];
   const Template = template.Component;
-  const canDownload = isComplete(data) && downloadingFormat === null;
+  const busy = downloadingFormat !== null || downloadingEntryId !== null;
+  const canDownload = isComplete(data) && !busy;
 
   return (
     <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
@@ -159,6 +247,13 @@ export function CertificateWorkspace() {
         />
         <TemplatePicker templates={templates} selectedId={templateId} onSelect={setTemplateId} />
         <CertificateForm data={data} onChange={handleChange} />
+        <CertificateHistoryPanel
+          entries={historyEntries}
+          templates={templates}
+          busy={busy}
+          onOpen={handleOpenEntry}
+          onDownload={handleDownloadEntry}
+        />
       </div>
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">
         <CertificatePreview
