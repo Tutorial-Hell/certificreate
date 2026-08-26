@@ -16,7 +16,18 @@ export type ParsedCertificateRequest =
 export function parseCertificateRequest(body: CertificateRequestBody): ParsedCertificateRequest {
   const result = certificateFormSchema.safeParse(body);
   if (!result.success) {
-    return { ok: false, errors: result.error.issues.map((issue) => issue.message) };
+    // A field can fail more than one check (e.g. an empty date fails both
+    // "required" and "valid date"); keep only the first message per field,
+    // matching validateCertificateData's per-field error shape.
+    const seenFields = new Set<string>();
+    const errors: string[] = [];
+    for (const issue of result.error.issues) {
+      const field = String(issue.path[0]);
+      if (seenFields.has(field)) continue;
+      seenFields.add(field);
+      errors.push(issue.message);
+    }
+    return { ok: false, errors };
   }
 
   const templateId = templates.some((template) => template.id === body.templateId)

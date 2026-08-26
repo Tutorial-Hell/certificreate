@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCertificateDate } from "@/lib/certificate/date";
+import { formatCertificateDate, isValidIsoDate } from "@/lib/certificate/date";
 import { useAutoFitFontSize } from "@/lib/certificate/use-auto-fit-font-size";
 import type { CertificateData } from "@/lib/certificate/types";
 
@@ -60,7 +60,10 @@ function LogoMark({ logoUrl }: { logoUrl?: string }) {
 export function ModernLineTemplate({ data }: { data: CertificateData }) {
   const recipientName = withPlaceholder(data.recipientName, "Recipient Name");
   const course = withPlaceholder(data.course, "Course Name");
-  const date = withPlaceholder(formatCertificateDate(data.date), "MM/DD/YYYY");
+  const date =
+    data.date.trim() && isValidIsoDate(data.date)
+      ? { text: formatCertificateDate(data.date), isPlaceholder: false }
+      : { text: "MM/DD/YYYY", isPlaceholder: true };
   const instructorName = withPlaceholder(data.instructorName, "Instructor Name");
 
   const { ref: recipientNameRef, fontSize: recipientNameFontSize } = useAutoFitFontSize<HTMLDivElement>(

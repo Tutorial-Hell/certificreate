@@ -28,6 +28,11 @@ describe("parseCertificateRequest", () => {
     expect(result).toEqual({ ok: false, errors: ["Recipient name is too long"] });
   });
 
+  it("rejects a 5-digit year with a single error, not a stacked message", () => {
+    const result = parseCertificateRequest({ ...validBody, date: "20260-08-09" });
+    expect(result).toEqual({ ok: false, errors: ["Enter a valid date"] });
+  });
+
   it("falls back to the default template for an unknown templateId", () => {
     const result = parseCertificateRequest({ ...validBody, templateId: "not-a-real-template" });
     expect(result).toEqual({ ok: true, data: { ...validBody, templateId: "black-border" } });

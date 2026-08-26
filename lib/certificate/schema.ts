@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidIsoDate } from "@/lib/certificate/date";
 import type { CertificateData } from "@/lib/certificate/types";
 
 type CertificateFormFields = Omit<CertificateData, "logoUrl">;
@@ -25,7 +26,11 @@ export const certificateFormSchema = z.object({
     "Recipient name is too long",
   ),
   course: requiredTrimmedString("Course is required", COURSE_MAX_LENGTH, "Course name is too long"),
-  date: requiredTrimmedString("Date is required", Number.MAX_SAFE_INTEGER, "Date is too long"),
+  date: requiredTrimmedString(
+    "Date is required",
+    Number.MAX_SAFE_INTEGER,
+    "Date is too long",
+  ).refine(isValidIsoDate, "Enter a valid date"),
   instructorName: requiredTrimmedString(
     "Instructor is required",
     INSTRUCTOR_NAME_MAX_LENGTH,

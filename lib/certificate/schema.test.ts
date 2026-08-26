@@ -36,6 +36,18 @@ describe("validateCertificateData", () => {
     expect(result.errors.date).toBe("Date is required");
   });
 
+  it("rejects a 5-digit year", () => {
+    const result = validateCertificateData({ ...validData, date: "20260-08-09" });
+    expect(result.valid).toBe(false);
+    expect(result.errors.date).toBe("Enter a valid date");
+  });
+
+  it("rejects an impossible calendar date", () => {
+    const result = validateCertificateData({ ...validData, date: "2026-02-30" });
+    expect(result.valid).toBe(false);
+    expect(result.errors.date).toBe("Enter a valid date");
+  });
+
   it("rejects an empty instructor name", () => {
     const result = validateCertificateData({ ...validData, instructorName: "" });
     expect(result.valid).toBe(false);
