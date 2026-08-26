@@ -4,7 +4,7 @@ import { parseCertificateRequest } from "./request";
 const validBody = {
   recipientName: "Jane Doe",
   course: "Coding With AI",
-  date: "08/21/2026",
+  date: "2026-08-21",
   instructorName: "Brad Traversy",
   templateId: "black-border",
 };
@@ -17,7 +17,15 @@ describe("parseCertificateRequest", () => {
 
   it("reports every missing or blank required field", () => {
     const result = parseCertificateRequest({ recipientName: "Jane Doe", course: "  " });
-    expect(result).toEqual({ ok: false, missing: ["course", "date", "instructorName"] });
+    expect(result).toEqual({
+      ok: false,
+      errors: ["Course is required", "Date is required", "Instructor is required"],
+    });
+  });
+
+  it("reports a field that exceeds the max length", () => {
+    const result = parseCertificateRequest({ ...validBody, recipientName: "a".repeat(101) });
+    expect(result).toEqual({ ok: false, errors: ["Recipient name is too long"] });
   });
 
   it("falls back to the default template for an unknown templateId", () => {

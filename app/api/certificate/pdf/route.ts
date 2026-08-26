@@ -16,10 +16,7 @@ export async function POST(request: NextRequest) {
 
   const parsed = parseCertificateRequest(body);
   if (!parsed.ok) {
-    return NextResponse.json(
-      { error: `Missing required field(s): ${parsed.missing.join(", ")}` },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: parsed.errors.join(", ") }, { status: 400 });
   }
 
   try {

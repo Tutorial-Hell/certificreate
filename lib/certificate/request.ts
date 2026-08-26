@@ -1,3 +1,4 @@
+import { certificateFormSchema } from "@/lib/certificate/schema";
 import { templates } from "@/lib/certificate/templates";
 import type { BrandColors } from "@/lib/certificate/brand-settings";
 import type { CertificateData } from "@/lib/certificate/types";
@@ -8,25 +9,14 @@ export type CertificateRequestBody = Partial<CertificateData> & {
   colors?: BrandColors;
 };
 
-const REQUIRED_FIELDS = [
-  "recipientName",
-  "course",
-  "date",
-  "instructorName",
-] as const satisfies readonly (keyof CertificateData)[];
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
 export type ParsedCertificateRequest =
   | { ok: true; data: CertificateRenderRequest }
-  | { ok: false; missing: string[] };
+  | { ok: false; errors: string[] };
 
 export function parseCertificateRequest(body: CertificateRequestBody): ParsedCertificateRequest {
-  const missing = REQUIRED_FIELDS.filter((field) => !isNonEmptyString(body[field]));
-  if (missing.length > 0) {
-    return { ok: false, missing };
+  const result = certificateFormSchema.safeParse(body);
+  if (!result.success) {
+    return { ok: false, errors: result.error.issues.map((issue) => issue.message) };
   }
 
   const templateId = templates.some((template) => template.id === body.templateId)
@@ -36,10 +26,7 @@ export function parseCertificateRequest(body: CertificateRequestBody): ParsedCer
   return {
     ok: true,
     data: {
-      recipientName: body.recipientName as string,
-      course: body.course as string,
-      date: body.date as string,
-      instructorName: body.instructorName as string,
+      ...result.data,
       templateId,
       colors: body.colors,
       logoUrl: body.logoUrl,

@@ -13,6 +13,7 @@ import {
   LAST_FORM_VALUES_STORAGE_KEY,
   parseLastFormValues,
 } from "@/lib/certificate/last-form-values";
+import { validateCertificateData } from "@/lib/certificate/schema";
 import { templates } from "@/lib/certificate/templates";
 import type { CertificateData } from "@/lib/certificate/types";
 
@@ -63,15 +64,6 @@ function CertificatePreview({
         <Template data={data} />
       </div>
     </div>
-  );
-}
-
-function isComplete(data: CertificateData): boolean {
-  return Boolean(
-    data.recipientName.trim() &&
-      data.course.trim() &&
-      data.date.trim() &&
-      data.instructorName.trim(),
   );
 }
 
@@ -235,7 +227,8 @@ export function CertificateWorkspace() {
   const template = templates.find((t) => t.id === templateId) ?? templates[0];
   const Template = template.Component;
   const busy = downloadingFormat !== null || downloadingEntryId !== null;
-  const canDownload = isComplete(data) && !busy;
+  const { valid: dataIsValid, errors: formErrors } = validateCertificateData(data);
+  const canDownload = dataIsValid && !busy;
 
   return (
     <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
@@ -246,7 +239,7 @@ export function CertificateWorkspace() {
           saveError={brandSettingsSaveError}
         />
         <TemplatePicker templates={templates} selectedId={templateId} onSelect={setTemplateId} />
-        <CertificateForm data={data} onChange={handleChange} />
+        <CertificateForm data={data} onChange={handleChange} errors={formErrors} />
         <CertificateHistoryPanel
           entries={historyEntries}
           templates={templates}
