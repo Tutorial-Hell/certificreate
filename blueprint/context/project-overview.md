@@ -102,17 +102,13 @@ The preview is the real template scaled down, so what you see is what you get. T
 - **Target:** Render, web service (not static/serverless) - persistent container needed for Puppeteer
 - **Build/start:** `npm run build` / `npm run start` (see `AGENTS.md`)
 - **First deploy timing:** as soon as feature 3 (PNG export) works locally - create the web service, verify the PNG renders identically in production, then leave auto-deploy on for everything after. Deployment itself is manual, not a build-plan step.
+- **Env vars:** `CERTIFICATE_RENDER_CONCURRENCY` (optional) - caps how many renders run at once; falls back to 2 when unset or invalid, so instance sizing can be tuned without a redeploy. No other app-specific env vars - Render injects `PORT` automatically and the app already respects it.
+- **Health check path:** `GET /api/health` - returns `200 { "status": "ok" }`. Deliberately does not depend on Puppeteer/Chrome being ready, so a slow Chrome cold-start or a transient hiccup isn't read as the service being down.
+- **Custom domain:** not yet configured - a manual step in the Render dashboard plus DNS once the app is ready to move off the default `onrender.com` URL.
 - **Chrome cache:** `.puppeteerrc.cjs` at repo root, `cacheDirectory` set to `join(__dirname, '.cache', 'puppeteer')` so the build-time Chrome download ships with the deploy; add `.cache` to `.gitignore`
 - **Launch flags:** `--no-sandbox`, `--disable-setuid-sandbox`, `--disable-dev-shm-usage`
-- **Render pattern:** one browser launched at server boot, one page per request, never relaunched per request; concurrency capped at 1-2 renders with a small queue
+- **Render pattern:** one browser launched at server boot, one page per request, never relaunched per request; concurrency capped (see `CERTIFICATE_RENDER_CONCURRENCY` above) with a small in-process queue
 - **Dependency placement:** `puppeteer` must be in `dependencies`, not `devDependencies`
 - **Fonts:** served by the app via `@font-face`, with `document.fonts.ready` awaited before capture
 - **Instance size:** Starter minimum, Standard (2GB) preferred; no free tier (spin-down + Chrome memory)
 - **Known failure mode:** "Could not find Chrome" after a Puppeteer version bump - fix is "Clear build cache & deploy" on Render
-
-> TODO: env vars, health check path, and custom domain are not decided yet - these belong in project-plan.md section 8 or here once known.
-
-## Open questions
-
-- `project-plan.md` has no `## 8. Deployment` section; the deployment plan above was assembled from section 5 (Tech) and `build-plan.md`'s "Deployment notes" instead. Not blocking, but worth adding section 8 to `project-plan.md` next time it's edited so deployment lives in one place.
-- Env vars, health check path, and custom domain for the Render service aren't named yet - see the TODO in Deployment above.

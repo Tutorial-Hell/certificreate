@@ -87,3 +87,34 @@ headline, letter-spaced small-cap labels, the blue double-line border with corne
 flourishes, and the centered logo mark between the instructor and date lines. The
 app chrome around it is clean and modern (dark-mode-first per coding standards);
 the certificate artifact stays light and print-friendly. No login anywhere in v1.
+
+## 8. Deployment - Where and how does this run?
+
+- **Target:** Render, web service (not static/serverless) - Puppeteer needs a
+  persistent container, not a cold-starting serverless function
+- **Build/start:** `npm run build` / `npm run start`
+- **Env vars:** `CERTIFICATE_RENDER_CONCURRENCY` (optional) - caps how many
+  renders run at once; falls back to 2 when unset or invalid, so instance
+  sizing can be tuned without a redeploy. No other app-specific env vars -
+  Render injects `PORT` automatically and the app already respects it.
+- **Health check path:** `GET /api/health` - returns `200 { "status": "ok" }`.
+  Deliberately does not depend on Puppeteer/Chrome being ready, so a slow
+  Chrome cold-start or a transient hiccup isn't read as the service being down.
+- **Custom domain:** not yet configured - a manual step in the Render
+  dashboard plus DNS once the app is ready to move off the default
+  `onrender.com` URL.
+- **Chrome cache:** `.puppeteerrc.cjs` at the repo root, `cacheDirectory` set
+  to `.cache/puppeteer`, so the build-time Chrome download ships with the
+  deploy (fixes "Could not find Chrome")
+- **Launch flags:** `--no-sandbox`, `--disable-setuid-sandbox`,
+  `--disable-dev-shm-usage`
+- **Render pattern:** one browser launched at server boot, one page per
+  request, never relaunched per request; concurrency capped (see
+  `CERTIFICATE_RENDER_CONCURRENCY` above) with a small in-process queue
+- **Dependency placement:** `puppeteer` in `dependencies`, not `devDependencies`
+- **Fonts:** self-hosted via `@font-face`, with `document.fonts.ready`
+  awaited before capture
+- **Instance size:** Starter minimum, Standard (2GB) preferred; no free tier
+  (spin-down + Chrome memory)
+- **Known failure mode:** "Could not find Chrome" after a Puppeteer version
+  bump - fix is "Clear build cache & deploy" on Render
