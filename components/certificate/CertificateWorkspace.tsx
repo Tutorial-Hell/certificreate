@@ -126,7 +126,11 @@ export function CertificateWorkspace() {
     loaded: brandSettingsLoaded,
     saveError: brandSettingsSaveError,
   } = useBrandSettings();
-  const { entries: historyEntries, addEntry: addHistoryEntry } = useCertificateHistory();
+  const {
+    entries: historyEntries,
+    addEntry: addHistoryEntry,
+    clearEntries: clearHistoryEntries,
+  } = useCertificateHistory();
   const [formValuesLoaded, setFormValuesLoaded] = useState(false);
 
   const handleChange = (field: keyof Omit<CertificateData, "logoUrl">, value: string) => {
@@ -246,6 +250,7 @@ export function CertificateWorkspace() {
           busy={busy}
           onOpen={handleOpenEntry}
           onDownload={handleDownloadEntry}
+          onClearHistory={clearHistoryEntries}
         />
       </div>
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">

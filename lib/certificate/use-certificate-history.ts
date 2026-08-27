@@ -28,5 +28,14 @@ export function useCertificateHistory() {
     setEntries((prev) => addHistoryEntry(prev, entry));
   };
 
-  return { entries, addEntry, loaded };
+  const clearEntries = () => {
+    try {
+      localStorage.removeItem(CERTIFICATE_HISTORY_STORAGE_KEY);
+    } catch {
+      // best-effort; history is a convenience, not critical data
+    }
+    setEntries([]);
+  };
+
+  return { entries, addEntry, clearEntries, loaded };
 }

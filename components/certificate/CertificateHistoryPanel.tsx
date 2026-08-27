@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CertificateHistoryEntry } from "@/lib/certificate/history";
 import type { Template } from "@/lib/certificate/types";
 
@@ -14,18 +15,47 @@ export function CertificateHistoryPanel({
   busy,
   onOpen,
   onDownload,
+  onClearHistory,
 }: {
   entries: CertificateHistoryEntry[];
   templates: Template[];
   busy: boolean;
   onOpen: (entry: CertificateHistoryEntry) => void;
   onDownload: (entry: CertificateHistoryEntry, format: "png" | "pdf") => void;
+  onClearHistory: () => void;
 }) {
+  const [confirmingClear, setConfirmingClear] = useState(false);
+
+  const handleClearClick = () => {
+    if (confirmingClear) {
+      onClearHistory();
+      setConfirmingClear(false);
+    } else {
+      setConfirmingClear(true);
+    }
+  };
+
   return (
     <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
-        History
-      </h2>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
+          History
+        </h2>
+        {entries.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearClick}
+            onBlur={() => setConfirmingClear(false)}
+            className={
+              confirmingClear
+                ? "rounded-[var(--radius-sm)] border border-red-500 px-2 py-1 text-[10px] font-medium text-red-500 transition"
+                : "rounded-[var(--radius-sm)] border border-[var(--border)] px-2 py-1 text-[10px] font-medium text-[var(--muted)] transition hover:border-red-500 hover:text-red-500"
+            }
+          >
+            {confirmingClear ? "Confirm clear?" : "Clear History"}
+          </button>
+        )}
+      </div>
       {entries.length === 0 ? (
         <p className="text-xs text-[var(--faint)]">No certificates generated yet.</p>
       ) : (
