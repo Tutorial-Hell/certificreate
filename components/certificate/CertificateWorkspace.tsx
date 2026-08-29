@@ -191,6 +191,12 @@ export function CertificateWorkspace() {
     }
   };
 
+  const handleClearHistory = () => {
+    clearHistoryEntries();
+    setData(emptyData);
+    setTemplateId(templates[0].id);
+  };
+
   const handleOpenEntry = (entry: CertificateHistoryEntry) => {
     setData({
       recipientName: entry.recipientName,
@@ -250,7 +256,7 @@ export function CertificateWorkspace() {
           busy={busy}
           onOpen={handleOpenEntry}
           onDownload={handleDownloadEntry}
-          onClearHistory={clearHistoryEntries}
+          onClearHistory={handleClearHistory}
         />
       </div>
       <div className="flex flex-col items-center justify-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-8">
