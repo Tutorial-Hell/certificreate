@@ -193,7 +193,7 @@ export function CertificateWorkspace() {
 
   const handleClearHistory = () => {
     clearHistoryEntries();
-    setData(emptyData);
+    setData({ ...emptyData, instructorName: brandSettings.instructorName });
     setTemplateId(templates[0].id);
   };
 
